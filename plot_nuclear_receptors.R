@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 # Reproduce nuclear receptor dot plot from GSE293459 processed Seurat object.
 # Usage: Rscript plot_nuclear_receptors.R path/to/GSE293459_patient_seurat.rds [output_dir]
+#can be used for other genes
 
 suppressPackageStartupMessages({
   library(Seurat)
