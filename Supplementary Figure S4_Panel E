@@ -1,0 +1,152 @@
+
+# ============================================================
+# Supplementary Figure S4E
+# Non-converted OCSC Signature: Downregulated Genes
+#
+# Dataset: GSE293459
+# Cell population: Epithelial/tumor cells only
+# Method: Seurat AddModuleScore (unweighted)
+# ============================================================
+
+library(Seurat)
+library(ggplot2)
+library(readxl)
+
+# ------------------------------------------------------------
+# 1. Load non-converted OCSC gene signature
+# ------------------------------------------------------------
+
+# Local file path (including original filename typo)
+signature_file <- "file_path_for_non-converted_unique_gene_set"
+
+# For GitHub, use a relative path:
+# signature_file <- "Non-converted_unqiue.xls"
+
+if (!file.exists(signature_file)) {
+  stop("Non-converted signature file not found.")
+}
+
+# Read spreadsheet without assuming column headers
+nonconverted <- read_excel(
+  path = signature_file,
+  skip = 2,
+  col_names = FALSE
+)
+
+# Gene symbols in column 1
+# Expression log ratios in column 4
+nonconverted$Gene <- trimws(
+  as.character(nonconverted[[1]])
+)
+
+nonconverted$LogRatio <- suppressWarnings(
+  as.numeric(nonconverted[[4]])
+)
+
+# Remove invalid entries
+nonconverted <- nonconverted[
+  !is.na(nonconverted$Gene) &
+  nzchar(nonconverted$Gene) &
+  !is.na(nonconverted$LogRatio),
+]
+
+
+# ------------------------------------------------------------
+# 2. Extract downregulated signature genes
+# ------------------------------------------------------------
+
+# Negative log ratios are treated as downregulated.
+# Verify contrast orientation against the original analysis.
+
+nonconverted_down <- unique(
+  nonconverted$Gene[
+    nonconverted$LogRatio < 0
+  ]
+)
+
+cat(
+  "Total downregulated genes:",
+  length(nonconverted_down), "\n"
+)
+
+
+# ------------------------------------------------------------
+# 3. Match signature genes to patient RNA dataset
+# ------------------------------------------------------------
+
+DefaultAssay(epi) <- "RNA"
+
+nonconverted_down_matched <- intersect(
+  nonconverted_down,
+  rownames(epi[["RNA"]])
+)
+
+cat(
+  "Downregulated genes matched to patient dataset:",
+  length(nonconverted_down_matched), "\n"
+)
+
+if (length(nonconverted_down_matched) < 2) {
+  stop("Too few downregulated genes matched the RNA assay.")
+}
+
+
+# ------------------------------------------------------------
+# 4. Calculate unweighted module score
+# ------------------------------------------------------------
+
+set.seed(123)
+
+epi <- AddModuleScore(
+  object = epi,
+  features = list(nonconverted_down_matched),
+  assay = "RNA",
+  name = "NonConverted_Down_Score",
+  seed = 123
+)
+
+# Seurat automatically appends "1"
+score_column <- "NonConverted_Down_Score1"
+
+
+# ------------------------------------------------------------
+# 5. Plot module score on RNA UMAP
+# ------------------------------------------------------------
+
+p_S4E <- FeaturePlot(
+  object = epi,
+  features = score_column,
+  reduction = "rnaumap",
+  cols = c("grey90", "navy"),
+  pt.size = 0.25,
+  raster = FALSE,
+  order = TRUE
+) +
+  labs(
+    title = "Non-converted OCSC Signature (Downregulated)",
+    x = "rnaumap_1",
+    y = "rnaumap_2"
+  ) +
+  theme_classic(base_size = 11) +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      face = "bold",
+      size = 12
+    )
+  )
+
+print(p_S4E)
+
+
+# ------------------------------------------------------------
+# 6. Save figure
+# ------------------------------------------------------------
+
+ggsave(
+  filename = "Supplementary_Figure_S4E.pdf",
+  plot = p_S4E,
+  width = 7,
+  height = 5,
+  units = "in"
+)
