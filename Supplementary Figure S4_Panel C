@@ -1,0 +1,167 @@
+
+# ============================================================
+# Supplementary Figure S4C
+# Epithelial Cluster Annotations
+#
+# Dataset: GSE293459
+# Analysis: Single-cell RNA sequencing
+# Cell population: Epithelial/tumor cells only
+#
+# Cluster annotations were manually curated using
+# canonical gene expression markers.
+# ============================================================
+
+library(Seurat)
+library(ggplot2)
+
+# ------------------------------------------------------------
+# 1. Set RNA assay
+# ------------------------------------------------------------
+
+DefaultAssay(epi) <- "RNA"
+
+
+# ------------------------------------------------------------
+# 2. Define original biological cluster annotations
+# ------------------------------------------------------------
+
+cluster_annotations <- c(
+  "0"  = "Metallothionein/secretory",
+  "1"  = "Stress response/hypoxia",
+  "2"  = "Cycling/DNA damage",
+  "3"  = "Stemness/stress response",
+  "5"  = "Stress response/cycling",
+  "6"  = "Interferon/cycling",
+  "7"  = "Metallothionein/secretory",
+  "8"  = "Secretory/EMT",
+  "9"  = "Stress response/secretory",
+  "10" = "Secretory/stress response",
+  "11" = "DNA damage/stemness",
+  "12" = "Secretory/metallothionein",
+  "13" = "Secretory/EMT",
+  "14" = "Secretory/stress response",
+  "16" = "Stress response/DNA damage"
+)
+
+
+# ------------------------------------------------------------
+# 3. Assign annotations to original Seurat clusters
+# ------------------------------------------------------------
+
+epi$S4C_Annotation <- unname(
+  cluster_annotations[
+    as.character(epi$seurat_clusters)
+  ]
+)
+
+# Check for missing annotations
+if (anyNA(epi$S4C_Annotation)) {
+  stop("Missing biological annotations for one or more clusters.")
+}
+
+# Preserve numerical cluster order
+cluster_ids <- names(cluster_annotations)
+
+epi$S4C_Cluster <- factor(
+  as.character(epi$seurat_clusters),
+  levels = cluster_ids
+)
+
+
+# ------------------------------------------------------------
+# 4. Define cluster colors
+# Approximate original S4C color palette
+# ------------------------------------------------------------
+
+cluster_colors <- c(
+  "0"  = "#F8766D",
+  "1"  = "#E68613",
+  "2"  = "#C49A00",
+  "3"  = "#A3A500",
+  "5"  = "#39B600",
+  "6"  = "#00BA38",
+  "7"  = "#00BF7D",
+  "8"  = "#00BFC4",
+  "9"  = "#00B0F6",
+  "10" = "#00A6FF",
+  "11" = "#619CFF",
+  "12" = "#B983FF",
+  "13" = "#D65AD1",
+  "14" = "#F564C9",
+  "16" = "#FF5C9A"
+)
+
+
+# ------------------------------------------------------------
+# 5. Generate epithelial cluster annotation UMAP
+# ------------------------------------------------------------
+
+p_S4C <- DimPlot(
+  object = epi,
+  reduction = "rnaumap",
+  group.by = "S4C_Cluster",
+  cols = cluster_colors,
+  pt.size = 0.25,
+  label = FALSE,
+  raster = FALSE
+) +
+  scale_color_manual(
+    values = cluster_colors,
+    breaks = cluster_ids,
+    labels = paste0(
+      cluster_ids,
+      " — ",
+      cluster_annotations[cluster_ids]
+    ),
+    drop = TRUE
+  ) +
+  labs(
+    title = "Epithelial Cluster Annotations",
+    x = "rnaumap_1",
+    y = "rnaumap_2",
+    color = "Cluster"
+  ) +
+  theme_classic(base_size = 11) +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      face = "bold",
+      size = 13
+    ),
+    legend.position = "right",
+    legend.title = element_text(
+      face = "bold",
+      size = 11
+    ),
+    legend.text = element_text(size = 9)
+  )
+
+
+# ------------------------------------------------------------
+# 6. Display figure
+# ------------------------------------------------------------
+
+print(p_S4C)
+
+
+# ------------------------------------------------------------
+# 7. Verify cluster annotations
+# ------------------------------------------------------------
+
+table(
+  epi$S4C_Cluster,
+  epi$S4C_Annotation
+)
+
+
+# ------------------------------------------------------------
+# 8. Save figure
+# ------------------------------------------------------------
+
+ggsave(
+  filename = "Supplementary_Figure_S4C.pdf",
+  plot = p_S4C,
+  width = 10,
+  height = 6,
+  units = "in"
+)
