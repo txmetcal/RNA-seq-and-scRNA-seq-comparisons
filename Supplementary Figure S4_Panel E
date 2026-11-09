@@ -144,7 +144,7 @@ print(p_S4E)
 # ------------------------------------------------------------
 
 ggsave(
-  filename = "Supplementary_Figure_S4E.pdf",
+  filename = "Supplementary_Figure_S4E.tiff",
   plot = p_S4E,
   width = 7,
   height = 5,
