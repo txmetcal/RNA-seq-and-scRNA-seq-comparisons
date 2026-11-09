@@ -1,0 +1,85 @@
+
+# ============================================================
+# Supplementary Figure S4A
+# Patient scRNA-seq UMAP: Sensitive, Resistant, and NACT
+#
+# Dataset: GEO GSE293459
+# Cell population: Epithelial/tumor cells
+# Analysis: Seurat / Signac
+# ============================================================
+
+# 1. Load libraries
+library(Seurat)
+library(Signac)
+library(ggplot2)
+
+# 2. Load patient Seurat object
+# Place the .rds file in the current working directory.
+input_file <- "GSE293459_patient_seurat copy.rds"
+
+if (!file.exists(input_file)) {
+  stop(
+    "Input file not found: ", input_file,
+    "\nPlace the RDS file in your working directory."
+  )
+}
+
+obj <- readRDS(input_file)
+
+# 3. Verify object structure
+class(obj)
+dim(obj)
+Assays(obj)
+Reductions(obj)
+
+# 4. Subset epithelial/tumor cells
+epi <- subset(
+  obj,
+  subset = customtype == "Tumor"
+)
+
+DefaultAssay(epi) <- "RNA"
+
+# 5. Verify tumor subset
+dim(epi)
+table(epi$subgroup3, useNA = "ifany")
+table(epi$seurat_clusters)
+
+# 6. Set patient group order
+epi$subgroup3 <- factor(
+  epi$subgroup3,
+  levels = c("Sensitive", "Resistant", "NACT")
+)
+
+# 7. Generate RNA UMAP
+p_S4A <- DimPlot(
+  object = epi,
+  reduction = "rnaumap",
+  group.by = "subgroup3",
+  cols = c(
+    "lightpink2",
+    "green3",
+    "skyblue3"
+  ),
+  pt.size = 0.3,
+  raster = FALSE
+) +
+  labs(
+    title = "Patient Groups",
+    x = "UMAP 1",
+    y = "UMAP 2",
+    color = "Patient group"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      face = "bold"
+    ),
+    legend.position = "right",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 11)
+  )
+
+# 8. Display figure
+print(p_S4A)
