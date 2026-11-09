@@ -1,0 +1,216 @@
+
+# ============================================================
+# Supplementary Figure S4I
+# Converted OCSC Signature: Downregulated Genes
+#
+# Dataset: GEO GSE293459
+# Cell population: Epithelial/tumor cells only
+# Method: Seurat AddModuleScore (unweighted)
+# ============================================================
+
+library(Seurat)
+library(ggplot2)
+library(readxl)
+
+# ------------------------------------------------------------
+# 1. Load converted OCSC gene signature
+# ------------------------------------------------------------
+
+signature_file <- "file_path_for_converted_unique_1205_genes"
+
+# For GitHub, replace with a relative path:
+# signature_file <- "Converted_1205.xls"
+
+if (!file.exists(signature_file)) {
+  stop("Converted OCSC signature file not found.")
+}
+
+converted <- read_excel(
+  path = signature_file,
+  skip = 2,
+  col_names = FALSE,
+  .name_repair = "minimal"
+)
+
+# ------------------------------------------------------------
+# 2. Extract gene symbols and expression log ratios
+# ------------------------------------------------------------
+
+# Confirmed spreadsheet layout:
+# Column 1 = Gene symbol
+# Column 5 = Expression log ratio
+
+converted_genes <- data.frame(
+  Gene = trimws(as.character(converted[[1]])),
+  LogRatio = suppressWarnings(
+    as.numeric(converted[[5]])
+  )
+)
+
+# Remove missing or invalid entries
+converted_genes <- converted_genes[
+  !is.na(converted_genes$Gene) &
+    nzchar(converted_genes$Gene) &
+    !is.na(converted_genes$LogRatio),
+]
+
+# ------------------------------------------------------------
+# 3. Extract downregulated converted OCSC genes
+# ------------------------------------------------------------
+
+# Negative log ratios are provisionally treated as
+# downregulated in converted OCSCs.
+# Confirm the original differential-expression contrast.
+
+converted_down <- unique(
+  converted_genes$Gene[
+    converted_genes$LogRatio < 0
+  ]
+)
+
+cat(
+  "Total converted signature genes:",
+  length(unique(converted_genes$Gene)), "\n"
+)
+
+cat(
+  "Downregulated converted genes:",
+  length(converted_down), "\n"
+)
+
+# ------------------------------------------------------------
+# 4. Match signature genes to patient RNA dataset
+# ------------------------------------------------------------
+
+# Use epithelial/tumor subset from S4A-S4H
+
+if (!exists("epi")) {
+  stop("The epithelial Seurat object 'epi' is not loaded.")
+}
+
+DefaultAssay(epi) <- "RNA"
+
+converted_down_matched <- intersect(
+  converted_down,
+  rownames(epi[["RNA"]])
+)
+
+cat(
+  "Downregulated genes matched to GSE293459:",
+  length(converted_down_matched), "\n"
+)
+
+if (length(converted_down_matched) < 2) {
+  stop("Too few converted signature genes matched the RNA assay.")
+}
+
+# ------------------------------------------------------------
+# 5. Calculate unweighted module score
+# ------------------------------------------------------------
+
+set.seed(123)
+
+epi <- AddModuleScore(
+  object = epi,
+  features = list(converted_down_matched),
+  assay = "RNA",
+  name = "Converted_Down_Score",
+  seed = 123
+)
+
+# Seurat automatically appends "1"
+score_column <- "Converted_Down_Score1"
+
+# Verify score distribution
+summary(epi@meta.data[[score_column]])
+
+# ------------------------------------------------------------
+# 6. Generate converted downregulated signature UMAP
+# ------------------------------------------------------------
+
+p_S4I <- FeaturePlot(
+  object = epi,
+  features = score_column,
+  reduction = "rnaumap",
+  cols = c("grey90", "purple4"),
+  pt.size = 0.25,
+  order = TRUE,
+  raster = FALSE
+) +
+  labs(
+    title = "Converted OCSC Signature (Downregulated)",
+    x = "rnaumap_1",
+    y = "rnaumap_2"
+  ) +
+  theme_classic(base_size = 11) +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      face = "bold",
+      size = 12
+    ),
+    axis.title = element_text(size = 11),
+    axis.text = element_text(size = 10),
+    legend.position = "right"
+  )
+
+# Display figure
+print(p_S4I)
+
+# ------------------------------------------------------------
+# 7. Save figure
+# ------------------------------------------------------------
+
+ggsave(
+  filename = "Supplementary_Figure_S4I.pdf",
+  plot = p_S4I,
+  width = 7,
+  height = 5,
+  units = "in"
+)
+
+ggsave(
+  filename = "Supplementary_Figure_S4I.png",
+  plot = p_S4I,
+  width = 7,
+  height = 5,
+  units = "in",
+  dpi = 300
+)
+
+# ------------------------------------------------------------
+# 8. Export matched genes for reproducibility
+# ------------------------------------------------------------
+
+write.csv(
+  data.frame(Gene = converted_down_matched),
+  file = "Supplementary_Figure_S4I_Matched_Genes.csv",
+  row.names = FALSE
+)
+
+# ------------------------------------------------------------
+# 9. Summarize module score by original Seurat cluster
+# ------------------------------------------------------------
+
+cluster_scores_S4I <- aggregate(
+  epi@meta.data[[score_column]],
+  by = list(
+    Cluster = as.character(epi$seurat_clusters)
+  ),
+  FUN = mean,
+  na.rm = TRUE
+)
+
+colnames(cluster_scores_S4I)[2] <- "Mean_Module_Score"
+
+cluster_scores_S4I <- cluster_scores_S4I[
+  order(as.numeric(cluster_scores_S4I$Cluster)),
+]
+
+print(cluster_scores_S4I)
+
+write.xls(
+  cluster_scores_S4I,
+  "Supplementary_Figure_S4I_Cluster_Scores.xls",
+  row.names = FALSE
+)
