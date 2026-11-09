@@ -91,7 +91,7 @@ print(p_S4D)
 
 # 6. Save figure
 ggsave(
-  "Supplementary_Figure_S4D.pdf",
+  "Supplementary_Figure_S4D.tiff",
   plot = p_S4D,
   width = 7,
   height = 5
