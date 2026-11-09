@@ -159,7 +159,7 @@ table(
 # ------------------------------------------------------------
 
 ggsave(
-  filename = "Supplementary_Figure_S4C.pdf",
+  filename = "Supplementary_Figure_S4C.tiff",
   plot = p_S4C,
   width = 10,
   height = 6,
