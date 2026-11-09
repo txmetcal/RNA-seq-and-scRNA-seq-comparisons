@@ -1,0 +1,172 @@
+
+# ============================================================
+# Supplementary Figure S4H
+# Converted OCSC Signature: Upregulated Genes
+#
+# Dataset: GEO GSE293459
+# Cell population: Epithelial/tumor cells only
+# Method: Seurat AddModuleScore (unweighted)
+# ============================================================
+
+library(Seurat)
+library(ggplot2)
+library(readxl)
+
+# ------------------------------------------------------------
+# 1. Load converted OCSC signature
+# ------------------------------------------------------------
+
+signature_file <- "file_path_for_converted_unique_genes"
+
+# For GitHub, use:
+# signature_file <- "Converted_1205.xls"   #1205 unqiue genes to converted OCSCs
+
+if (!file.exists(signature_file)) {
+  stop("Converted OCSC signature file not found.")
+}
+
+converted <- read_excel(
+  path = signature_file,
+  skip = 2,
+  col_names = FALSE,
+  .name_repair = "minimal"
+)
+
+# ------------------------------------------------------------
+# 2. Extract gene symbols and expression log ratios
+# ------------------------------------------------------------
+
+# Confirmed from spreadsheet preview:
+# Column 1 = Gene symbol
+# Column 5 = Expression log ratio
+
+converted_genes <- data.frame(
+  Gene = trimws(as.character(converted[[1]])),
+  LogRatio = suppressWarnings(
+    as.numeric(converted[[5]])
+  )
+)
+
+converted_genes <- converted_genes[
+  !is.na(converted_genes$Gene) &
+    nzchar(converted_genes$Gene) &
+    !is.na(converted_genes$LogRatio),
+]
+
+# ------------------------------------------------------------
+# 3. Extract upregulated converted signature genes
+# ------------------------------------------------------------
+
+# Positive log ratios are provisionally classified as upregulated.
+# Verify the original contrast orientation before publication.
+
+converted_up <- unique(
+  converted_genes$Gene[
+    converted_genes$LogRatio > 0
+  ]
+)
+
+cat("Total converted signature genes:",
+    nrow(converted_genes), "\n")
+
+cat("Upregulated converted genes:",
+    length(converted_up), "\n")
+
+# ------------------------------------------------------------
+# 4. Match genes to patient dataset
+# ------------------------------------------------------------
+
+if (!exists("epi")) {
+  stop("The epithelial Seurat object 'epi' is not loaded.")
+}
+
+DefaultAssay(epi) <- "RNA"
+
+converted_up_matched <- intersect(
+  converted_up,
+  rownames(epi[["RNA"]])
+)
+
+cat("Upregulated genes matched to GSE293459:",
+    length(converted_up_matched), "\n")
+
+if (length(converted_up_matched) < 2) {
+  stop("Too few converted genes matched the RNA assay.")
+}
+
+# ------------------------------------------------------------
+# 5. Calculate unweighted module score
+# ------------------------------------------------------------
+
+set.seed(123)
+
+epi <- AddModuleScore(
+  object = epi,
+  features = list(converted_up_matched),
+  assay = "RNA",
+  name = "Converted_Up_Score",
+  seed = 123
+)
+
+score_column <- "Converted_Up_Score1"
+
+summary(epi@meta.data[[score_column]])
+
+# ------------------------------------------------------------
+# 6. Generate converted upregulated signature UMAP
+# ------------------------------------------------------------
+
+p_S4H <- FeaturePlot(
+  object = epi,
+  features = score_column,
+  reduction = "rnaumap",
+  cols = c("grey90", "purple4"),
+  pt.size = 0.25,
+  order = TRUE,
+  raster = FALSE
+) +
+  labs(
+    title = "Converted OCSC Signature (Upregulated)",
+    x = "rnaumap_1",
+    y = "rnaumap_2"
+  ) +
+  theme_classic(base_size = 11) +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      face = "bold",
+      size = 12
+    ),
+    legend.position = "right"
+  )
+
+print(p_S4H)
+
+# ------------------------------------------------------------
+# 7. Save figure
+# ------------------------------------------------------------
+
+ggsave(
+  "Supplementary_Figure_S4H.pdf",
+  plot = p_S4H,
+  width = 7,
+  height = 5
+)
+
+ggsave(
+  "Supplementary_Figure_S4H.tiff",
+  plot = p_S4H,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+# ------------------------------------------------------------
+# 8. Export matched genes for reproducibility
+# ------------------------------------------------------------
+
+write.xls(
+  data.frame(Gene = converted_up_matched),
+  "Supplementary_Figure_S4H_Matched_Genes.xls",
+  row.names = FALSE
+)
