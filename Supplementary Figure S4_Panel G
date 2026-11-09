@@ -1,0 +1,95 @@
+
+# ============================================================
+# Supplementary Figure S4G
+# Expression of SRC, PXN, ITGB3, and CADM1
+#
+# Dataset: GEO GSE293459
+# Cell population: Epithelial/tumor cells only
+# Method: Seurat FeaturePlot
+# ============================================================
+
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+
+# ------------------------------------------------------------
+# 1. Set RNA assay
+# ------------------------------------------------------------
+
+DefaultAssay(epi) <- "RNA"
+
+# ------------------------------------------------------------
+# 2. Define genes of interest
+# ------------------------------------------------------------
+
+genes_S4G <- c(
+  "SRC",
+  "PXN",
+  "ITGB3",
+  "CADM1"
+)
+
+# Verify genes are present
+available_genes <- intersect(
+  genes_S4G,
+  rownames(epi[["RNA"]])
+)
+
+missing_genes <- setdiff(
+  genes_S4G,
+  available_genes
+)
+
+cat("Available genes:\n")
+print(available_genes)
+
+cat("Missing genes:\n")
+print(missing_genes)
+
+if (length(missing_genes) > 0) {
+  stop("One or more S4G genes are missing from the RNA assay.")
+}
+
+# ------------------------------------------------------------
+# 3. Generate individual gene-expression UMAPs
+# ------------------------------------------------------------
+
+p_S4G <- FeaturePlot(
+  object = epi,
+  features = genes_S4G,
+  reduction = "rnaumap",
+  cols = c("lightgrey", "blue"),
+  pt.size = 0.25,
+  order = TRUE,
+  raster = FALSE,
+  ncol = 2,
+  combine = TRUE
+) &
+  theme_classic(base_size = 11)
+
+# ------------------------------------------------------------
+# 4. Display figure
+# ------------------------------------------------------------
+
+print(p_S4G)
+
+# ------------------------------------------------------------
+# 5. Save figure
+# ------------------------------------------------------------
+
+ggsave(
+  filename = "Supplementary_Figure_S4G.pdf",
+  plot = p_S4G,
+  width = 10,
+  height = 8,
+  units = "in"
+)
+
+ggsave(
+  filename = "Supplementary_Figure_S4G.tiff",
+  plot = p_S4G,
+  width = 10,
+  height = 8,
+  units = "in",
+  dpi = 300
+)
