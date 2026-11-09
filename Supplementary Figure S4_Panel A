@@ -15,7 +15,7 @@ library(ggplot2)
 
 # 2. Load patient Seurat object
 # Place the .rds file in the current working directory.
-input_file <- "GSE293459_patient_seurat copy.rds"
+input_file <- "GSE293459_patient_seurat.rds"
 
 if (!file.exists(input_file)) {
   stop(
