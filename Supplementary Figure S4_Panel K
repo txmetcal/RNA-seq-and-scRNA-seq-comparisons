@@ -1,0 +1,107 @@
+
+# ============================================================
+# Supplementary Figure S4K
+# C2 Stemness Score by Cluster - Original Color Scheme
+# ============================================================
+
+library(Seurat)
+library(ggplot2)
+
+# ------------------------------------------------------------
+# 1. Set original Seurat cluster identities
+# ------------------------------------------------------------
+
+DefaultAssay(epi) <- "RNA"
+Idents(epi) <- "seurat_clusters"
+
+cluster_levels <- c(
+  "0", "1", "2", "3", "5",
+  "6", "7", "8", "9", "10",
+  "11", "12", "13", "14", "16"
+)
+
+Idents(epi) <- factor(
+  as.character(epi$seurat_clusters),
+  levels = cluster_levels
+)
+
+# ------------------------------------------------------------
+# 2. Define cluster-specific colors
+# ------------------------------------------------------------
+
+cluster_colors <- c(
+  "0"  = "#F8766D",  # Coral
+  "1"  = "#E68613",  # Orange
+  "2"  = "#C49A00",  # Golden yellow
+  "3"  = "#A3A500",  # Olive
+  "5"  = "#7CAE00",  # Yellow-green
+  "6"  = "#00BA38",  # Green
+  "7"  = "#00BF7D",  # Emerald
+  "8"  = "#00BFC4",  # Teal
+  "9"  = "#00B0F6",  # Cyan-blue
+  "10" = "#00A6FF",  # Blue
+  "11" = "#619CFF",  # Light blue
+  "12" = "#B983FF",  # Lavender
+  "13" = "#D65FDF",  # Purple
+  "14" = "#F564E3",  # Pink
+  "16" = "#FF66A1"   # Rose
+)
+
+# ------------------------------------------------------------
+# 3. Generate multicolored violin plot
+# ------------------------------------------------------------
+
+p_S4K <- VlnPlot(
+  object = epi,
+  features = "C2_Stemness_Score1",
+  pt.size = 0,
+  cols = cluster_colors
+) +
+  scale_fill_manual(
+    values = cluster_colors,
+    breaks = cluster_levels,
+    drop = FALSE,
+    name = NULL
+  ) +
+  labs(
+    title = "C2 Stemness Score by Cluster",
+    x = "Cluster",
+    y = "Consensus stemness score"
+  ) +
+  theme_classic(base_size = 12) +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      face = "bold",
+      size = 14
+    ),
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1,
+      color = "black"
+    ),
+    axis.text.y = element_text(color = "black"),
+    legend.position = "right",
+    legend.title = element_blank()
+  )
+
+print(p_S4K)
+
+# ------------------------------------------------------------
+# 4. Save figure
+# ------------------------------------------------------------
+
+ggsave(
+  "Supplementary_Figure_S4K.pdf",
+  plot = p_S4K,
+  width = 9,
+  height = 5.5
+)
+
+ggsave(
+  "Supplementary_Figure_S4K.tiff",
+  plot = p_S4K,
+  width = 9,
+  height = 5.5,
+  dpi = 300
+)
