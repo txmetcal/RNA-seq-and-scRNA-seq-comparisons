@@ -1,0 +1,98 @@
+
+# ============================================================
+# Supplementary Figure S4D
+# Non-converted OCSC Signature: Upregulated Genes
+# Dataset: GSE293459
+# Cell population: Epithelial/tumor cells only
+# Method: Unweighted Seurat module score
+# ============================================================
+
+library(Seurat)
+library(ggplot2)
+library(readxl)
+
+# 1. Load signature spreadsheet
+# For GitHub, use a relative path instead
+signature_file <- "file_path_for_non-converted_unique_gene_set"
+
+# Read spreadsheet with explicit column names
+# Row 3 contains the first gene (ABCA3)
+nonconverted <- read_excel(
+  path = signature_file,
+  skip = 2,
+  col_names = FALSE
+)
+
+# Extract gene symbols and expression log ratios
+nonconverted$Gene <- trimws(as.character(nonconverted[[1]]))
+nonconverted$LogRatio <- suppressWarnings(
+  as.numeric(nonconverted[[4]])
+)
+
+# Remove missing or invalid entries
+nonconverted <- nonconverted[
+  !is.na(nonconverted$Gene) &
+  nzchar(nonconverted$Gene) &
+  !is.na(nonconverted$LogRatio),
+]
+
+# 2. Extract upregulated genes
+# Verify that positive log ratios represent upregulation
+# in the intended non-converted comparison
+
+nonconverted_up <- unique(
+  nonconverted$Gene[nonconverted$LogRatio > 0]
+)
+
+# 3. Match genes to patient dataset
+DefaultAssay(epi) <- "RNA"
+
+nonconverted_up_matched <- intersect(
+  nonconverted_up,
+  rownames(epi[["RNA"]])
+)
+
+cat("Total upregulated genes:", length(nonconverted_up), "\n")
+cat("Matched genes:", length(nonconverted_up_matched), "\n")
+
+if (length(nonconverted_up_matched) < 2) {
+  stop("Too few signature genes matched the patient dataset.")
+}
+
+# 4. Calculate unweighted module score
+set.seed(123)
+
+epi <- AddModuleScore(
+  object = epi,
+  features = list(nonconverted_up_matched),
+  assay = "RNA",
+  name = "NonConverted_Up_Score",
+  seed = 123
+)
+
+# 5. Plot module score
+p_S4D <- FeaturePlot(
+  object = epi,
+  features = "NonConverted_Up_Score1",
+  reduction = "rnaumap",
+  cols = c("grey90", "navy"),
+  pt.size = 0.25,
+  order = TRUE,
+  raster = FALSE
+) +
+  labs(
+    title = "Non-converted OCSC Signature (Upregulated)",
+    x = "rnaumap_1",
+    y = "rnaumap_2"
+  ) +
+  theme_classic(base_size = 11)
+
+print(p_S4D)
+
+# 6. Save figure
+ggsave(
+  "Supplementary_Figure_S4D.pdf",
+  plot = p_S4D,
+  width = 7,
+  height = 5
+)
