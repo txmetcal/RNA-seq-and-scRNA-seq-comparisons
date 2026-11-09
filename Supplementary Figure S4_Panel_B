@@ -1,0 +1,47 @@
+
+# ============================================================
+# Supplementary Figure S4B
+# UMAP of Seurat cluster identities
+#
+# Dataset: GEO GSE293459
+# Cell population: Epithelial/tumor cells
+# ============================================================
+
+# 1. Set cluster identities
+Idents(epi) <- "seurat_clusters"
+
+# 2. Remove unused cluster levels after subsetting
+Idents(epi) <- droplevels(Idents(epi))
+
+# 3. Verify cluster distribution
+table(Idents(epi))
+
+# 4. Generate cluster UMAP
+p_S4B <- DimPlot(
+  object = epi,
+  reduction = "rnaumap",
+  group.by = "seurat_clusters",
+  label = TRUE,
+  repel = TRUE,
+  pt.size = 0.3,
+  raster = FALSE
+) +
+  labs(
+    title = "Seurat Clusters",
+    x = "UMAP 1",
+    y = "UMAP 2",
+    color = "Cluster"
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      face = "bold"
+    ),
+    legend.position = "right",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
+
+# 5. Display figure
+print(p_S4B)
