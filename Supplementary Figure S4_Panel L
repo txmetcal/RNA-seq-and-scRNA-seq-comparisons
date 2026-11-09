@@ -1,0 +1,154 @@
+
+# ============================================================
+# Supplementary Figure S4L
+# Stemness Marker and Nuclear Receptor Expression
+#
+# Dataset: GEO GSE293459
+# Cell population: Epithelial/tumor cells only
+# Visualization: Seurat FeaturePlot
+# Layout: 3 rows x 3 columns
+# ============================================================
+
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+
+# ------------------------------------------------------------
+# 1. Verify epithelial Seurat object
+# ------------------------------------------------------------
+
+if (!exists("epi")) {
+  stop("Object 'epi' not found. Load the epithelial subset first.")
+}
+
+DefaultAssay(epi) <- "RNA"
+
+if (!"rnaumap" %in% Reductions(epi)) {
+  stop("RNA UMAP reduction 'rnaumap' not found.")
+}
+
+# ------------------------------------------------------------
+# 2. Define genes in original S4L order
+# ------------------------------------------------------------
+
+s4l_genes <- c(
+  "ALDH1A1", "BMI1", "NANOG",
+  "POU5F1", "SOX2", "PROM1",
+  "RARA", "RXRA", "VDR"
+)
+
+# Check gene availability
+missing_genes <- setdiff(
+  s4l_genes,
+  rownames(epi[["RNA"]])
+)
+
+if (length(missing_genes) > 0) {
+  stop(
+    "Missing genes in RNA assay: ",
+    paste(missing_genes, collapse = ", ")
+  )
+}
+
+# ------------------------------------------------------------
+# 3. Generate individual FeaturePlots
+# ------------------------------------------------------------
+
+# Individual plots preserve gene-specific expression scales,
+# as shown in the original supplementary figure.
+
+s4l_plots <- lapply(s4l_genes, function(gene) {
+
+  FeaturePlot(
+    object = epi,
+    features = gene,
+    reduction = "rnaumap",
+    cols = c("grey95", "navy"),    #color on plots
+    pt.size = 0.25,
+    order = TRUE,
+    raster = FALSE
+  ) +
+    labs(
+      title = gene,
+      x = "rnaumap_1",
+      y = "rnaumap_2"
+    ) +
+    guides(
+      color = guide_colorbar(
+        title = "Normalized\nExpression",
+        title.position = "top",
+        barheight = grid::unit(1.5, "cm"),
+        barwidth = grid::unit(0.35, "cm")
+      )
+    ) +
+    theme_classic(base_size = 9) +
+    theme(
+      plot.title = element_text(
+        hjust = 0.5,
+        face = "bold",
+        size = 11
+      ),
+      axis.title = element_text(size = 8),
+      axis.text = element_text(size = 7),
+      legend.title = element_text(size = 7),
+      legend.text = element_text(size = 7),
+      legend.position = "right"
+    )
+
+})
+
+# ------------------------------------------------------------
+# 4. Arrange plots in original 3 x 3 layout
+# ------------------------------------------------------------
+
+p_S4L <- wrap_plots(
+  s4l_plots,
+  ncol = 3,
+  nrow = 3,
+  guides = "keep"
+)
+
+# Display complete figure
+print(p_S4L)
+
+# ------------------------------------------------------------
+# 5. Save high-resolution figures
+# ------------------------------------------------------------
+
+ggsave(
+  filename = "Supplementary_Figure_S4L.pdf",
+  plot = p_S4L,
+  width = 13,
+  height = 9,
+  units = "in"
+)
+
+ggsave(
+  filename = "Supplementary_Figure_S4L.tiff",
+  plot = p_S4L,
+  width = 13,
+  height = 9,
+  units = "in",
+  dpi = 300
+)
+
+# ------------------------------------------------------------
+# 6. Export gene list for reproducibility
+# ------------------------------------------------------------
+
+write.xls(
+  data.frame(Gene = s4l_genes),
+  file = "Supplementary_Figure_S4L_Genes.xls",
+  row.names = FALSE
+)
+
+# ------------------------------------------------------------
+# 7. Record R session information
+# ------------------------------------------------------------
+
+capture.output(
+  sessionInfo(),
+  file = "Supplementary_Figure_S4L_SessionInfo.txt"
+)
+
+cat("Supplementary Figure S4L completed successfully.\n")
