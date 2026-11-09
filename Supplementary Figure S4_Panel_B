@@ -1,47 +1,27 @@
 
 # ============================================================
 # Supplementary Figure S4B
-# UMAP of Seurat cluster identities
+# RNA UMAP labeled by Seurat cluster
 #
 # Dataset: GEO GSE293459
-# Cell population: Epithelial/tumor cells
+# Cell population: All cells in original Seurat object
 # ============================================================
 
-# 1. Set cluster identities
-Idents(epi) <- "seurat_clusters"
+# Use original full patient dataset (obj)
+# Do NOT use the epithelial subset (epi) for this panel.
 
-# 2. Remove unused cluster levels after subsetting
-Idents(epi) <- droplevels(Idents(epi))
-
-# 3. Verify cluster distribution
-table(Idents(epi))
-
-# 4. Generate cluster UMAP
 p_S4B <- DimPlot(
-  object = epi,
+  object = obj,
   reduction = "rnaumap",
   group.by = "seurat_clusters",
   label = TRUE,
-  repel = TRUE,
-  pt.size = 0.3,
+  repel = FALSE,
+  pt.size = 0.25,
   raster = FALSE
 ) +
-  labs(
-    title = "Seurat Clusters",
-    x = "UMAP 1",
-    y = "UMAP 2",
-    color = "Cluster"
-  ) +
-  theme_classic(base_size = 14) +
-  theme(
-    plot.title = element_text(
-      hjust = 0.5,
-      face = "bold"
-    ),
-    legend.position = "right",
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 10)
-  )
+  ggtitle("RNA UMAP labeled by cluster") +
+  theme_classic()
 
-# 5. Display figure
+# Display figure
 print(p_S4B)
+
